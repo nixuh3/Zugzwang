@@ -31,109 +31,95 @@ uint64_t rand64() {
     return x * 2685821657736338717ULL;
 }
 
-} // namespace
-
-namespace Zobrist {
-
 Key psq[PIECE_NB][SQUARE_NB]; // psq[NO_PIECE] for en passant
 Key castling[CASTLING_RIGHT_NB];
 Key side;
 
-} // namespace Zobrist
+} // namespace
 
-Board::Board() { initZobrist(); }
-
-void Board::initZobrist() {
+Position::Position() {
     for (int i = 0; i < PIECE_NB; ++i) {
         for (Square j = SQ_A1; j < SQUARE_NB; ++j) {
-            Zobrist::psq[i][j] = rand64();
+            psq[i][j] = rand64();
         }
     }
-    Zobrist::side = rand64();
+    side = rand64();
     for (int i = 0; i < CASTLING_RIGHT_NB; ++i) {
-        Zobrist::castling[i] = rand64();
+        castling[i] = rand64();
     }
 }
 
-void Board::putPiece(Piece piece, Square sq) {
-    assert(piece != NO_PIECE);
-    Color color = ColorOf(piece);
-
-    pieces[sq] = piece;
-    posKey ^= Zobrist::psq[piece][sq];
-    pieceList[piece][pieceNb[piece]++] = sq;
-    SetBit(byColorBB[color], sq);
-}
-
-void Board::removePiece(Square sq) {
-    Piece piece = pieces[sq];
+void Position::putPiece(Piece piece, Square sq) {
     assert(piece != NO_PIECE);
 
-    Color color = ColorOf(piece);
+    board[sq] = piece;
+    posKey ^= psq[piece][sq];
+    pieceNb[piece]++;
 
-    posKey ^= Zobrist::psq[piece][sq];
-    pieces[sq] = NO_PIECE;
-
-    ClearBit(byColorBB[color], sq);
-
-    for (int i = 0; i < pieceNb[piece]; ++i) {
-        if (pieceList[piece][i] == sq) {
-            pieceList[piece][i] = pieceList[piece][--pieceNb[piece]];
-            return;
-        }
-    }
-    assert(false);
+    byColorBB[ColorOf(piece)] |= sq;
+    byTypeBB[ALL_PIECES] |= byTypeBB[TypeOf(piece)] |= sq;
 }
 
-void Board::movePiece(Square from, Square to) {
-    Piece piece = pieces[from];
+void Position::removePiece(Square sq) {
+    Piece piece = board[sq];
     assert(piece != NO_PIECE);
 
-    Color color = ColorOf(piece);
+    posKey ^= psq[piece][sq];
+    board[sq] = NO_PIECE;
 
-    posKey ^= Zobrist::psq[piece][from];
-    posKey ^= Zobrist::psq[piece][to];
-    pieces[from] = NO_PIECE;
-    pieces[to] = piece;
+    byTypeBB[ALL_PIECES] ^= sq;
+    byTypeBB[TypeOf(piece)] ^= sq;
+    byColorBB[ColorOf(piece)] ^= sq;
 
-    ClearBit(byColorBB[color], from);
-    SetBit(byColorBB[color], to);
-
-    for (int i = 0; i < pieceNb[piece]; ++i) {
-        if (pieceList[piece][i] == from) {
-            pieceList[piece][i] = to;
-            return;
-        }
-    }
-    assert(false);
+    pieceNb[piece]--;
 }
 
-void Board::generatePosKey() {
+void Position::movePiece(Square from, Square to) {
+    Piece piece = board[from];
+    assert(piece != NO_PIECE);
+
+    Bitboard fromTo = from | to;
+
+    posKey ^= psq[piece][from];
+    posKey ^= psq[piece][to];
+    board[from] = NO_PIECE;
+    board[to] = piece;
+
+    byTypeBB[ALL_PIECES] ^= fromTo;
+    byTypeBB[TypeOf(piece)] ^= fromTo;
+    byColorBB[ColorOf(piece)] ^= fromTo;
+}
+
+void Position::generatePosKey() {
     for (Square i = SQ_A1; i < SQUARE_NB; ++i) {
-        Piece piece = pieces[i];
+        Piece piece = board[i];
         if (piece != NO_PIECE) {
-            posKey ^= Zobrist::psq[piece][i];
+            posKey ^= psq[piece][i];
         }
     }
 
     if (sideToMove == WHITE) {
-        posKey ^= Zobrist::side;
+        posKey ^= side;
     }
 
     if (epSquare != SQ_NONE) {
-        posKey ^= Zobrist::psq[NO_PIECE][epSquare];
+        posKey ^= psq[NO_PIECE][epSquare];
     }
 
-    posKey ^= Zobrist::castling[castlingRights];
+    posKey ^= castling[castlingRights];
 }
 
-void Board::reset() {
+void Position::reset() {
     for (Square i = SQ_A1; i < SQUARE_NB; ++i) {
-        pieces[i] = NO_PIECE;
+        board[i] = NO_PIECE;
     }
 
     for (int i = 0; i < PIECE_NB; ++i) {
         pieceNb[i] = 0;
+    }
+
+    for (int i = 0; i < PIECE_TYPE_NB; ++i) {
+        byTypeBB[i] = 0ULL;
     }
 
     byColorBB[WHITE] = byColorBB[BLACK] = 0ULL;
@@ -146,20 +132,20 @@ void Board::reset() {
     posKey = 0ULL;
 }
 
-void Board::updateListsBitboards() {
+void Position::updateListsBitboards() {
     for (Square sq = SQ_A1; sq < SQUARE_NB; ++sq) {
-        const Piece piece = pieces[sq];
+        const Piece piece = board[sq];
 
         if (piece != NO_PIECE) {
-            Color color = ColorOf(piece);
+            byColorBB[ColorOf(piece)] |= sq;
+            byTypeBB[ALL_PIECES] |= byTypeBB[TypeOf(piece)] |= sq;
 
-            SetBit(byColorBB[color], sq);
-            pieceList[piece][pieceNb[piece]++] = sq;
+            pieceNb[piece]++;
         }
     }
 }
 
-void Board::ParseFen(const std::string& fen) {
+void Position::ParseFen(const std::string& fen) {
     reset();
 
     unsigned char col, row, token;
@@ -179,7 +165,7 @@ void Board::ParseFen(const std::string& fen) {
             const char* p = std::strchr(PieceToChar, token);
             if (p) {
                 idx = p - PieceToChar;
-                pieces[sq] = Piece(idx);
+                board[sq] = Piece(idx);
                 if (Piece(idx) == W_KING) {
                     kingSquare[WHITE] = sq;
                 }
@@ -222,7 +208,7 @@ void Board::ParseFen(const std::string& fen) {
     updateListsBitboards();
 }
 
-bool Board::MakeMove(const Move& move) {
+bool Position::MakeMove(const Move& move) {
     const Square from = move.FromSq();
     const Square to = move.ToSq();
 
@@ -231,13 +217,13 @@ bool Board::MakeMove(const Move& move) {
     history[gamePly].rule50 = rule50;
     history[gamePly].epSquare = epSquare;
     history[gamePly].castlingRights = castlingRights;
-    history[gamePly].captured = pieces[to]; // normal captures only; en-passant handled separately
+    history[gamePly].captured = board[to]; // normal captures only; en-passant handled separately
 
     // remove old EP & castling from hash
     if (epSquare != SQ_NONE) {
-        posKey ^= Zobrist::psq[NO_PIECE][epSquare];
+        posKey ^= psq[NO_PIECE][epSquare];
     }
-    posKey ^= Zobrist::castling[castlingRights];
+    posKey ^= castling[castlingRights];
 
     // special move handling
     if (move.TypeOf() == EN_PASSANT) {
@@ -255,7 +241,7 @@ bool Board::MakeMove(const Move& move) {
     }
 
     // normal capture handling (if a piece sits on 'to')
-    if (pieces[to] != NO_PIECE) {
+    if (board[to] != NO_PIECE) {
         removePiece(to);
         rule50 = 0;
     } else if (move.TypeOf() != EN_PASSANT) {
@@ -273,27 +259,27 @@ bool Board::MakeMove(const Move& move) {
     }
 
     // update king square (if moved)
-    if (TypeOf(pieces[to]) == KING) {
+    if (TypeOf(board[to]) == KING) {
         kingSquare[sideToMove] = to;
     }
 
     // new en-passant target (from a double pawn push)
     epSquare = SQ_NONE;
-    if (TypeOf(pieces[to]) == PAWN && std::abs(RankOf(from) - RankOf(to)) == 2) {
+    if (TypeOf(board[to]) == PAWN && std::abs(RankOf(from) - RankOf(to)) == 2) {
         epSquare = from + (sideToMove == WHITE ? NORTH : SOUTH);
     }
     if (epSquare != SQ_NONE) {
-        posKey ^= Zobrist::psq[NO_PIECE][epSquare]; // add new EP key
+        posKey ^= psq[NO_PIECE][epSquare]; // add new EP key
     }
 
     // update castling rights and re-add castling key
     castlingRights &= CastlePerm[from];
     castlingRights &= CastlePerm[to];
-    posKey ^= Zobrist::castling[castlingRights];
+    posKey ^= castling[castlingRights];
 
     // flip side
     sideToMove = ~sideToMove;
-    posKey ^= Zobrist::side;
+    posKey ^= side;
 
     gamePly++;
 
@@ -304,7 +290,7 @@ bool Board::MakeMove(const Move& move) {
     return true;
 }
 
-void Board::UnmakeMove(const Move& move) {
+void Position::UnmakeMove(const Move& move) {
     gamePly--;
 
     const Square from = move.FromSq();
@@ -335,7 +321,7 @@ void Board::UnmakeMove(const Move& move) {
         putPiece(history[gamePly].captured, to);
     }
 
-    if (TypeOf(pieces[from]) == KING) {
+    if (TypeOf(board[from]) == KING) {
         kingSquare[sideToMove] = from;
     }
 
@@ -345,14 +331,14 @@ void Board::UnmakeMove(const Move& move) {
     posKey = history[gamePly].posKey;
 }
 
-void Board::Print() const {
+void Position::Print() const {
     using std::cout;
 
     cout << "+---+---+---+---+---+---+---+---+\n";
     for (Rank rank = RANK_8; rank >= RANK_1; --rank) {
         for (File file = FILE_A; file <= FILE_H; ++file) { // <= not <
             Square sq = MakeSquare(file, rank);
-            Piece p = pieces[sq];
+            Piece p = board[sq];
             char c = (p != NO_PIECE ? PieceToChar[p] : ' ');
             cout << "| " << c << " ";
         }
@@ -372,16 +358,16 @@ void Board::Print() const {
     cout << "Castle permissions: " << (castlingRights & WHITE_OO ? "K" : "-")
          << (castlingRights & WHITE_OOO ? "Q" : "-") << (castlingRights & BLACK_OO ? "k" : "-")
          << (castlingRights & BLACK_OOO ? "q" : "-") << "\n";
-    cout << "Position key: " << posKey << "\n";
+    cout << "Position key: " << std::hex << posKey << std::dec << "\n";
 }
 
-void Board::perft(int depth) {
+void Position::perft(int depth) {
     if (depth == 0) {
         perftLealNodes++;
         return;
     }
     MoveList list;
-    MoveGen::GeneratePseudoMoves(*this, list);
+    MoveGen::GeneratePseudo(*this, list);
 
     for (const auto& move : list) {
         if (!MakeMove(move)) {
@@ -392,7 +378,7 @@ void Board::perft(int depth) {
     }
 }
 
-uint64_t Board::PerftTest(int depth) {
+uint64_t Position::PerftTest(int depth) {
     using namespace std::chrono;
 
     std::cout << "Starting perft test to depth " << depth << "\n";
@@ -402,7 +388,7 @@ uint64_t Board::PerftTest(int depth) {
 
     const auto start = high_resolution_clock::now();
 
-    MoveGen::GeneratePseudoMoves(*this, list);
+    MoveGen::GeneratePseudo(*this, list);
     for (const auto& move : list) {
         if (!MakeMove(move)) {
             continue;

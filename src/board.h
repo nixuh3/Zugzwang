@@ -12,9 +12,9 @@ struct StateInfo {
     Key posKey;
 };
 
-class Board {
+class Position {
   public:
-    Board();
+    Position();
 
     void ParseFen(const std::string& fen);
 
@@ -25,12 +25,12 @@ class Board {
 
     uint64_t PerftTest(int depth);
 
-    Piece pieces[SQUARE_NB];
+    Piece board[SQUARE_NB];
     int pieceNb[PIECE_NB];
-    Square pieceList[PIECE_NB][10];
     Square kingSquare[COLOR_NB];
     Color sideToMove;
     Bitboard byColorBB[COLOR_NB];
+    Bitboard byTypeBB[PIECE_TYPE_NB];
 
     Square epSquare;
     int rule50;
@@ -39,8 +39,6 @@ class Board {
     Key posKey;
 
   private:
-    void initZobrist();
-
     void putPiece(Piece piece, Square sq);
     void removePiece(Square sq);
     void movePiece(Square from, Square to);

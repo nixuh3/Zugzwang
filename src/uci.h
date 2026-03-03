@@ -1,7 +1,7 @@
 #pragma once
 
 #include "board.h"
-#include <sstream>
+#include <iosfwd>
 #include <string_view>
 
 namespace Zugzwang {
@@ -14,11 +14,9 @@ class UCIEngine {
   private:
     void go(std::istringstream& is);
     void position(std::istringstream& is);
-
-    static bool isMoveStr(std::string_view str);
     Move parseMove(std::string_view str) const;
 
-    Board board;
+    Position board;
 };
 
 } // namespace Zugzwang

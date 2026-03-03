@@ -14,8 +14,7 @@ constexpr int MAX_PLIES = 2048;
 
 // clang-format off
 enum PieceType {
-    NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING,
-    ALL_PIECES = 0,
+    ALL_PIECES, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING,
     PIECE_TYPE_NB = 8
 };
 
@@ -34,12 +33,6 @@ enum CastlingRights {
     WHITE_OOO = WHITE_OO << 1,
     BLACK_OO  = WHITE_OO << 2,
     BLACK_OOO = WHITE_OO << 3,
-
-    KING_SIDE      = WHITE_OO | BLACK_OO,
-    QUEEN_SIDE     = WHITE_OOO | BLACK_OOO,
-    WHITE_CASTLING = WHITE_OO | WHITE_OOO,
-    BLACK_CASTLING = BLACK_OO | BLACK_OOO,
-    ANY_CASTLING   = WHITE_CASTLING | BLACK_CASTLING,
 
     CASTLING_RIGHT_NB = 16
 };
@@ -73,9 +66,9 @@ enum File : int { FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H
 
 enum Rank : int { RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, RANK_NB };
 
-#define ENABLE_INCR_OPERATORS_ON(T)                          \
-    inline T& operator++(T& d) { return d = T(int(d) + 1); } \
-    inline T& operator--(T& d) { return d = T(int(d) - 1); }
+#define ENABLE_INCR_OPERATORS_ON(T)                             \
+    constexpr T& operator++(T& d) { return d = T(int(d) + 1); } \
+    constexpr T& operator--(T& d) { return d = T(int(d) - 1); }
 
 ENABLE_INCR_OPERATORS_ON(PieceType)
 ENABLE_INCR_OPERATORS_ON(Square)
@@ -90,8 +83,8 @@ constexpr Direction operator*(int i, Direction d) { return Direction(i * int(d))
 // Additional operators to add a Direction to a Square
 constexpr Square operator+(Square s, Direction d) { return Square(int(s) + int(d)); }
 constexpr Square operator-(Square s, Direction d) { return Square(int(s) - int(d)); }
-inline Square& operator+=(Square& s, Direction d) { return s = s + d; }
-inline Square& operator-=(Square& s, Direction d) { return s = s - d; }
+constexpr Square& operator+=(Square& s, Direction d) { return s = s + d; }
+constexpr Square& operator-=(Square& s, Direction d) { return s = s - d; }
 
 // Toggle color
 constexpr Color operator~(Color c) { return Color(c ^ BLACK); }
@@ -102,7 +95,7 @@ constexpr Piece MakePiece(Color c, PieceType pt) { return Piece((c << 3) + pt); 
 
 constexpr PieceType TypeOf(Piece pc) { return PieceType(pc & 7); }
 
-inline Color ColorOf(Piece pc) {
+constexpr Color ColorOf(Piece pc) {
     assert(pc != NO_PIECE);
     return Color(pc >> 3);
 }
@@ -178,12 +171,12 @@ class MoveList {
     }
 
     // For non-const range-based for loops
-    inline Move* begin() { return moves; }
-    inline Move* end() { return moves + count; }
+    Move* begin() { return moves; }
+    Move* end() { return moves + count; }
 
     // For const range-based for loops
-    inline const Move* begin() const { return moves; }
-    inline const Move* end() const { return moves + count; }
+    const Move* begin() const { return moves; }
+    const Move* end() const { return moves + count; }
 
   private:
     Move moves[MAX_MOVES];

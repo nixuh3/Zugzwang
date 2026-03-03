@@ -4,7 +4,32 @@
 
 namespace Zugzwang {
 
-constexpr auto StartFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+namespace {
+
+constexpr const char* StartFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+bool isMoveStr(std::string_view str) {
+    auto IsFileValid = [](char ch) { return ch >= 'a' && ch <= 'h'; };
+    auto IsRankValid = [](char ch) { return ch >= '1' && ch <= '8'; };
+    auto IsPromoValid = [](char ch) { return ch == 'q' || ch == 'r' || ch == 'b' || ch == 'n'; };
+
+    if (str.size() != 4 && str.size() != 5) {
+        return false;
+    }
+    if (!IsFileValid(str[0]) || !IsRankValid(str[1]) || !IsFileValid(str[2]) ||
+        !IsRankValid(str[3])) {
+        return false;
+    }
+    if (str[0] == str[2] && str[1] == str[3]) { // same from and to square
+        return false;
+    }
+    if (str.size() == 5 && !IsPromoValid(str[4])) {
+        return false;
+    }
+    return true;
+}
+
+} // namespace
 
 UCIEngine::UCIEngine(int argc, char** argv) : board() { board.ParseFen(StartFEN); }
 
@@ -28,6 +53,7 @@ void UCIEngine::Loop() {
             std::cout << "readyok\n";
         } else if (token == "position") {
             position(is);
+            board.Print();
         } else if (token == "go") {
             go(is);
         } else if (token == "quit") {
@@ -88,33 +114,12 @@ void UCIEngine::position(std::istringstream& is) {
     }
 }
 
-bool UCIEngine::isMoveStr(std::string_view str) {
-    auto IsFileValid = [](char ch) { return ch >= 'a' && ch <= 'h'; };
-    auto IsRankValid = [](char ch) { return ch >= '1' && ch <= '8'; };
-    auto IsPromoValid = [](char ch) { return ch == 'q' || ch == 'r' || ch == 'b' || ch == 'n'; };
-
-    if (str.size() != 4 && str.size() != 5) {
-        return false;
-    }
-    if (!IsFileValid(str[0]) || !IsRankValid(str[1]) || !IsFileValid(str[2]) ||
-        !IsRankValid(str[3])) {
-        return false;
-    }
-    if (str[0] == str[2] && str[1] == str[3]) { // same from and to square
-        return false;
-    }
-    if (str.size() == 5 && !IsPromoValid(str[4])) {
-        return false;
-    }
-    return true;
-}
-
 Move UCIEngine::parseMove(std::string_view str) const {
     Square from = MakeSquare(File(str[0] - 'a'), Rank(str[1] - '1'));
     Square to = MakeSquare(File(str[2] - 'a'), Rank(str[3] - '1'));
 
     MoveList list;
-    MoveGen::GeneratePseudoMoves(board, list);
+    MoveGen::GeneratePseudo(board, list);
 
     for (const auto move : list) {
         if (move.FromSq() == from && move.ToSq() == to) {

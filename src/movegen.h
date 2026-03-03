@@ -4,12 +4,12 @@
 
 namespace Zugzwang {
 
-class Board;
+class Position;
 
 namespace MoveGen {
 
-bool IsSquareAttacked(const Board& board, Square sq, Color attacker);
-void GeneratePseudoMoves(const Board& board, MoveList& list);
+bool IsSquareAttacked(const Position& pos, Square sq, Color attacker);
+void GeneratePseudo(const Position& pos, MoveList& list);
 
 } // namespace MoveGen
 
