@@ -271,7 +271,7 @@ bool Position::MakeMove(const Move& move) {
 
     gamePly++;
 
-    if (MoveGen::IsSquareAttacked(*this, square<KING>(~sideToMove), sideToMove)) {
+    if (MoveGen::IsSquareAttacked(*this, SquareOf<KING>(~sideToMove), sideToMove)) {
         UnmakeMove(move);
         return false;
     }

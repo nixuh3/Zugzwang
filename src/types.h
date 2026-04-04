@@ -110,6 +110,9 @@ constexpr Rank RelativeRank(Color c, Rank r) { return Rank(r ^ (c * 7)); }
 
 constexpr Direction PawnPush(Color c) { return c == WHITE ? NORTH : SOUTH; }
 
+constexpr bool IsSlider(PieceType pt) { return (pt == BISHOP || pt == ROOK || pt == QUEEN); }
+constexpr bool IsSlider(Piece piece) { return IsSlider(TypeOf(piece)); }
+
 enum MoveType { NORMAL, PROMOTION = 1 << 14, EN_PASSANT = 2 << 14, CASTLING = 3 << 14 };
 
 // 16 bits:

@@ -50,7 +50,7 @@ class Position {
     }
 
     template <PieceType Pt>
-    Square square(Color c) const {
+    Square SquareOf(Color c) const {
         assert(Count<Pt>(c) == 1);
         return Lsb(Pieces(c, Pt));
     }
