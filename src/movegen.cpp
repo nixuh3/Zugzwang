@@ -85,7 +85,7 @@ void GeneratePawnMoves(const Position& pos, MoveList& list) {
 
 template <Color Us>
 void GenerateKingMoves(const Position& pos, MoveList& list) {
-    Square startSq = pos.square<KING>(Us);
+    Square startSq = pos.SquareOf<KING>(Us);
 
     Bitboard attacks = Bitboards::GetAttacks<KING>(startSq) & ~pos.Pieces(Us);
     SplatMoves(list, startSq, attacks);
@@ -149,32 +149,13 @@ void GeneratePseudoMoves(const Position& pos, MoveList& list) {
 namespace MoveGen {
 
 bool IsSquareAttacked(const Position& pos, Square sq, Color attacker) {
-    const Bitboard attackers = pos.Pieces(attacker);
     const Bitboard occ = pos.Pieces();
 
-    Bitboard bishops = pos.Pieces(BISHOP, QUEEN);
-    if (Bitboards::GetAttacks<BISHOP>(sq, occ) & attackers & bishops) {
-        return true;
-    }
-
-    Bitboard rooks = pos.Pieces(ROOK, QUEEN);
-    if (Bitboards::GetAttacks<ROOK>(sq, occ) & attackers & rooks) {
-        return true;
-    }
-
-    if (Bitboards::GetAttacks<KNIGHT>(sq) & attackers & pos.Pieces(KNIGHT)) {
-        return true;
-    }
-
-    if (Bitboards::GetAttacks<PAWN>(sq, 0, ~attacker) & attackers & pos.Pieces(PAWN)) {
-        return true;
-    }
-
-    if (Bitboards::GetAttacks<KING>(sq) & attackers & pos.Pieces(KING)) {
-        return true;
-    }
-
-    return false;
+    return (Bitboards::GetAttacks<BISHOP>(sq, occ) & pos.Pieces(attacker, BISHOP, QUEEN)) ||
+        (Bitboards::GetAttacks<ROOK>(sq, occ) & pos.Pieces(attacker, ROOK, QUEEN)) ||
+        (Bitboards::GetAttacks<KNIGHT>(sq) & pos.Pieces(attacker, KNIGHT)) ||
+        (Bitboards::GetAttacks<PAWN>(sq, 0, ~attacker) & pos.Pieces(attacker, PAWN)) ||
+        (Bitboards::GetAttacks<KING>(sq) & pos.Pieces(attacker, KING));
 }
 
 void GeneratePseudo(const Position& pos, MoveList& list) {

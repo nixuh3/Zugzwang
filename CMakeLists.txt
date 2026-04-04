@@ -21,14 +21,14 @@ set(SOURCES
     src/pch.h
 )
 
-add_executable(Zugzwang ${SOURCES})
+add_executable(${PROJECT_NAME} ${SOURCES})
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE src/pch.h)
 
-target_include_directories(Zugzwang PRIVATE "${PROJECT_SOURCE_DIR}/src")
+target_include_directories(${PROJECT_NAME} PRIVATE "${PROJECT_SOURCE_DIR}/src")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
-    target_compile_options(Zugzwang PRIVATE
+    target_compile_options(${PROJECT_NAME} PRIVATE
         -O3
         -march=native
         -flto

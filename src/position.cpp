@@ -9,7 +9,7 @@ namespace {
 constexpr auto PieceToChar = " PNBRQK  pnbrqk";
 
 // clang-format off
-constexpr int CastlePerm[64] = {
+constexpr int CastlePerm[SQUARE_NB] = {
     13, 15, 15, 15, 12, 15, 15, 14,
     15, 15, 15, 15, 15, 15, 15, 15,
     15, 15, 15, 15, 15, 15, 15, 15,
@@ -21,18 +21,18 @@ constexpr int CastlePerm[64] = {
 };
 // clang-format on
 
-uint64_t seed = 1804289383ULL;
-uint64_t rand64() {
-    uint64_t x = seed;
-    x ^= x >> 12;
-    x ^= x << 25;
-    x ^= x >> 27;
-    seed = x;
-    return x * 2685821657736338717ULL;
+uint64_t seed = 0x123456789ABCDEFULL;
+
+uint64_t splitmix64() {
+    uint64_t z = (seed += 0x9e3779b97f4a7c15ULL);
+    z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
+    z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
+    return z ^ (z >> 31);
 }
 
-Key psq[PIECE_NB][SQUARE_NB]; // psq[NO_PIECE] for en passant
+Key psq[PIECE_NB][SQUARE_NB];
 Key castling[CASTLING_RIGHT_NB];
+Key enPassant[FILE_NB];
 Key side;
 
 } // namespace
@@ -40,12 +40,18 @@ Key side;
 Position::Position() {
     for (int i = 0; i < PIECE_NB; ++i) {
         for (Square j = SQ_A1; j < SQUARE_NB; ++j) {
-            psq[i][j] = rand64();
+            psq[i][j] = splitmix64();
         }
     }
-    side = rand64();
+
+    for (File f = FILE_A; f < FILE_NB; ++f) {
+        enPassant[f] = splitmix64();
+    }
+
+    side = splitmix64();
+
     for (int i = 0; i < CASTLING_RIGHT_NB; ++i) {
-        castling[i] = rand64();
+        castling[i] = splitmix64();
     }
 }
 
@@ -103,7 +109,7 @@ void Position::generatePosKey() {
     }
 
     if (epSquare != SQ_NONE) {
-        posKey ^= psq[NO_PIECE][epSquare];
+        posKey ^= enPassant[FileOf(epSquare)];
     }
 
     posKey ^= castling[castlingRights];
@@ -214,7 +220,7 @@ bool Position::MakeMove(const Move& move) {
 
     // remove old EP & castling from hash
     if (epSquare != SQ_NONE) {
-        posKey ^= psq[NO_PIECE][epSquare];
+        posKey ^= enPassant[FileOf(epSquare)];
     }
     posKey ^= castling[castlingRights];
 
@@ -257,7 +263,7 @@ bool Position::MakeMove(const Move& move) {
         epSquare = from + (sideToMove == WHITE ? NORTH : SOUTH);
     }
     if (epSquare != SQ_NONE) {
-        posKey ^= psq[NO_PIECE][epSquare]; // add new EP key
+        posKey ^= enPassant[FileOf(epSquare)]; // add new EP key
     }
 
     // update castling rights and re-add castling key
@@ -271,7 +277,7 @@ bool Position::MakeMove(const Move& move) {
 
     gamePly++;
 
-    if (MoveGen::IsSquareAttacked(*this, square<KING>(~sideToMove), sideToMove)) {
+    if (MoveGen::IsSquareAttacked(*this, SquareOf<KING>(~sideToMove), sideToMove)) {
         UnmakeMove(move);
         return false;
     }
