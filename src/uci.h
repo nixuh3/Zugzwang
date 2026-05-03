@@ -16,7 +16,7 @@ class UCIEngine {
     void position(std::istringstream& is);
     Move parseMove(std::string_view str) const;
 
-    Position board;
+    Position m_Board;
 };
 
 } // namespace Zugzwang

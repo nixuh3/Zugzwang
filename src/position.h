@@ -6,11 +6,11 @@
 namespace Zugzwang {
 
 struct StateInfo {
-    Square epSquare;
-    int rule50;
-    int castlingRights;
-    Piece captured;
-    Key posKey;
+    Square EpSquare;
+    int Rule50;
+    int CastlingRights;
+    Piece Captured;
+    Key PosKey;
 };
 
 class Position {
@@ -26,12 +26,12 @@ class Position {
 
     uint64_t PerftTest(int depth);
 
-    Bitboard Pieces() const { return byTypeBB[ALL_PIECES]; }
-    Bitboard Pieces(Color c) const { return byColorBB[c]; }
+    Bitboard Pieces() const { return m_ByTypeBB[ALL_PIECES]; }
+    Bitboard Pieces(Color c) const { return m_ByColorBB[c]; }
 
     template <typename... PieceTypes>
     Bitboard Pieces(PieceTypes... pts) const {
-        return (byTypeBB[pts] | ...);
+        return (m_ByTypeBB[pts] | ...);
     }
 
     template <typename... PieceTypes>
@@ -41,7 +41,7 @@ class Position {
 
     template <PieceType Pt>
     int Count(Color c) const {
-        return pieceNb[MakePiece(c, Pt)];
+        return m_PieceNb[MakePiece(c, Pt)];
     }
 
     template <PieceType Pt>
@@ -57,12 +57,12 @@ class Position {
 
     Piece PieceOn(Square sq) const {
         assert(IsOk(sq));
-        return board[sq];
+        return m_Board[sq];
     }
 
-    Color SideToMove() const { return sideToMove; }
-    Square EpSuare() const { return epSquare; }
-    bool CanCastle(CastlingRights cr) const { return castlingRights & cr; }
+    Color SideToMove() const { return m_SideToMove; }
+    Square EpSuare() const { return m_EpSquare; }
+    bool CanCastle(CastlingRights cr) const { return m_CastlingRights & cr; }
 
   private:
     void putPiece(Piece piece, Square sq);
@@ -74,21 +74,21 @@ class Position {
     void updateListsBitboards();
     void perft(int depth);
 
-    Piece board[SQUARE_NB];
-    int pieceNb[PIECE_NB];
-    Color sideToMove;
-    Bitboard byColorBB[COLOR_NB];
-    Bitboard byTypeBB[PIECE_TYPE_NB];
+    Piece m_Board[SQUARE_NB];
+    int m_PieceNb[PIECE_NB];
+    Color m_SideToMove;
+    Bitboard m_ByColorBB[COLOR_NB];
+    Bitboard m_ByTypeBB[PIECE_TYPE_NB];
 
-    Square epSquare;
-    int rule50;
-    int gamePly;
-    int castlingRights;
-    Key posKey;
+    Square m_EpSquare;
+    int m_Rule50;
+    int m_GamePly;
+    int m_CastlingRights;
+    Key m_PosKey;
 
-    uint64_t perftLealNodes;
+    uint64_t m_PerftLealNodes;
 
-    StateInfo history[MAX_PLIES];
+    StateInfo m_History[MAX_PLIES];
 };
 
 } // namespace Zugzwang

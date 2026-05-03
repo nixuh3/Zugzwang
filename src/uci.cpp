@@ -31,7 +31,10 @@ bool isMoveStr(std::string_view str) {
 
 } // namespace
 
-UCIEngine::UCIEngine(int argc, char** argv) : board() { board.ParseFen(StartFEN); }
+UCIEngine::UCIEngine(int argc, char** argv) : m_Board() {
+    Bitboards::Init();
+    m_Board.ParseFen(StartFEN);
+}
 
 void UCIEngine::Loop() {
     std::string token, cmd;
@@ -74,7 +77,7 @@ void UCIEngine::go(std::istringstream& is) {
     int depth;
     is >> depth;
     if (depth >= 1) {
-        board.PerftTest(depth);
+        m_Board.PerftTest(depth);
     }
 }
 
@@ -99,7 +102,7 @@ void UCIEngine::position(std::istringstream& is) {
         moves.push_back(token);
     }
 
-    board.ParseFen(fen);
+    m_Board.ParseFen(fen);
     for (const auto& move : moves) {
         if (!isMoveStr(move)) {
             break;
@@ -110,7 +113,7 @@ void UCIEngine::position(std::istringstream& is) {
             break;
         }
 
-        board.MakeMove(mv);
+        m_Board.MakeMove(mv);
     }
 }
 
@@ -119,7 +122,7 @@ Move UCIEngine::parseMove(std::string_view str) const {
     Square to = MakeSquare(File(str[2] - 'a'), Rank(str[3] - '1'));
 
     MoveList list;
-    MoveGen::GeneratePseudo(board, list);
+    MoveGen::GeneratePseudo(m_Board, list);
 
     for (const auto move : list) {
         if (move.FromSq() == from && move.ToSq() == to) {

@@ -161,29 +161,29 @@ class Move {
 
 class MoveList {
   public:
-    MoveList() : count(0) {}
+    MoveList() : m_Count(0) {}
 
     void Insert(Move move) {
-        assert(count < MAX_MOVES);
-        moves[count++] = move;
+        assert(m_Count < MAX_MOVES);
+        m_Moves[m_Count++] = move;
     }
 
     Move& operator[](int i) {
-        assert(i >= 0 && i < count);
-        return moves[i];
+        assert(i >= 0 && i < m_Count);
+        return m_Moves[i];
     }
 
     // For non-const range-based for loops
-    Move* begin() { return moves; }
-    Move* end() { return moves + count; }
+    Move* begin() { return m_Moves; }
+    Move* end() { return m_Moves + m_Count; }
 
     // For const range-based for loops
-    const Move* begin() const { return moves; }
-    const Move* end() const { return moves + count; }
+    const Move* begin() const { return m_Moves; }
+    const Move* end() const { return m_Moves + m_Count; }
 
   private:
-    Move moves[MAX_MOVES];
-    int count;
+    Move m_Moves[MAX_MOVES];
+    int m_Count;
 };
 
 } // namespace Zugzwang
