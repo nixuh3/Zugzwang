@@ -12,6 +12,8 @@ using Key = uint64_t;
 constexpr int MAX_MOVES = 256;
 constexpr int MAX_PLIES = 2048;
 
+enum Color { WHITE, BLACK, COLOR_NB = 2 };
+
 // clang-format off
 enum PieceType {
     ALL_PIECES, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING,
@@ -24,8 +26,6 @@ enum Piece {
     B_PAWN = PAWN + 8, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING,
     PIECE_NB = 16
 };
-
-enum Color { WHITE, BLACK, COLOR_NB = 2 };
 
 enum CastlingRights {
     NO_CASTLING,
@@ -48,6 +48,26 @@ enum Square : int {
     SQ_A8, SQ_B8, SQ_C8, SQ_D8, SQ_E8, SQ_F8, SQ_G8, SQ_H8,
     SQ_NONE, SQUARE_NB = 64
 };
+// clang-format on
+
+using Value = int16_t;
+
+constexpr Value PawnValue = 100;
+constexpr Value KnightValue = 320;
+constexpr Value BishopValue = 330;
+constexpr Value RookValue = 500;
+constexpr Value QueenValue = 900;
+
+constexpr Value VALUE_ZERO = 0;
+constexpr Value VALUE_DRAW = 0;
+constexpr Value VALUE_NONE = 32002;
+constexpr Value VALUE_INFINITE = 32001;
+constexpr Value VALUE_MATE = 32000;
+
+// clang-format off
+constexpr Value PieceValue[PIECE_NB] = {
+    VALUE_ZERO, PawnValue, KnightValue, BishopValue, RookValue, QueenValue, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, PawnValue, KnightValue, BishopValue, RookValue, QueenValue, VALUE_ZERO, VALUE_ZERO};
 // clang-format on
 
 enum Direction : int {
@@ -88,6 +108,15 @@ constexpr Square& operator-=(Square& s, Direction d) { return s = s - d; }
 
 // Toggle color
 constexpr Color operator~(Color c) { return Color(c ^ BLACK); }
+
+// Swap A1 <-> A8
+constexpr Square FlipRank(Square s) { return Square(s ^ SQ_A8); }
+
+// Swap A1 <-> H1
+constexpr Square FlipFile(Square s) { return Square(s ^ SQ_H1); }
+
+// Swap color of piece B_KNIGHT <-> W_KNIGHT
+constexpr Piece operator~(Piece pc) { return Piece(pc ^ 8); }
 
 constexpr Square MakeSquare(File f, Rank r) { return Square((r << 3) + f); }
 
@@ -186,4 +215,4 @@ class MoveList {
     int m_Count;
 };
 
-} // namespace Zugzwang
+}

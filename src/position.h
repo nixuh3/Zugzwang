@@ -60,6 +60,8 @@ class Position {
         return m_Board[sq];
     }
 
+    Value GetMaterial(Color c) const { return m_Material[c]; }
+
     Color SideToMove() const { return m_SideToMove; }
     Square EpSuare() const { return m_EpSquare; }
     bool CanCastle(CastlingRights cr) const { return m_CastlingRights & cr; }
@@ -79,6 +81,7 @@ class Position {
     Color m_SideToMove;
     Bitboard m_ByColorBB[COLOR_NB];
     Bitboard m_ByTypeBB[PIECE_TYPE_NB];
+    Value m_Material[COLOR_NB];
 
     Square m_EpSquare;
     int m_Rule50;
@@ -91,4 +94,4 @@ class Position {
     StateInfo m_History[MAX_PLIES];
 };
 
-} // namespace Zugzwang
+}

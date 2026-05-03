@@ -12,7 +12,7 @@ void Init();
 template <PieceType P>
 Bitboard GetAttacks(Square square, Bitboard occupancy = 0, Color color = WHITE);
 
-} // namespace Bitboards
+}
 
 constexpr Bitboard SquareBb(Square s) {
     assert(IsOk(s));
@@ -41,4 +41,4 @@ inline Square PopLsb(Bitboard& b) {
 
 constexpr int Popcount(Bitboard b) { return std::popcount(b); }
 
-} // namespace Zugzwang
+}

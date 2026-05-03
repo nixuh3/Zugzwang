@@ -61,6 +61,7 @@ void Position::putPiece(Piece piece, Square sq) {
     m_Board[sq] = piece;
     m_PosKey ^= psq[piece][sq];
     m_PieceNb[piece]++;
+    m_Material[ColorOf(piece)] += PieceValue[piece];
 
     m_ByColorBB[ColorOf(piece)] |= sq;
     m_ByTypeBB[ALL_PIECES] |= m_ByTypeBB[TypeOf(piece)] |= sq;
@@ -72,6 +73,7 @@ void Position::removePiece(Square sq) {
 
     m_PosKey ^= psq[piece][sq];
     m_Board[sq] = NO_PIECE;
+    m_Material[ColorOf(piece)] -= PieceValue[piece];
 
     m_ByTypeBB[ALL_PIECES] ^= sq;
     m_ByTypeBB[TypeOf(piece)] ^= sq;
@@ -129,6 +131,7 @@ void Position::reset() {
     }
 
     m_ByColorBB[WHITE] = m_ByColorBB[BLACK] = 0ULL;
+    m_Material[WHITE] = m_Material[BLACK] = VALUE_ZERO;
     m_SideToMove = WHITE;
     m_EpSquare = SQ_NONE;
     m_Rule50 = 0;
@@ -146,6 +149,7 @@ void Position::updateListsBitboards() {
             m_ByTypeBB[ALL_PIECES] |= m_ByTypeBB[TypeOf(piece)] |= sq;
 
             m_PieceNb[piece]++;
+            m_Material[ColorOf(piece)] += PieceValue[piece];
         }
     }
 }
@@ -350,6 +354,7 @@ void Position::Print() const {
          << (m_CastlingRights & WHITE_OOO ? "Q" : "-") << (m_CastlingRights & BLACK_OO ? "k" : "-")
          << (m_CastlingRights & BLACK_OOO ? "q" : "-") << "\n";
     cout << "Position key: " << std::hex << m_PosKey << std::dec << "\n";
+    cout << m_Material[WHITE] << ", " << m_Material[BLACK] << "\n";
 }
 
 void Position::perft(int depth) {
@@ -418,4 +423,4 @@ uint64_t Position::PerftTest(int depth) {
     return duration;
 }
 
-} // namespace Zugzwang
+}

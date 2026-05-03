@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "movegen.h"
 #include "uci.h"
+#include "evaluation.h"
 
 namespace Zugzwang {
 
@@ -50,13 +51,14 @@ void UCIEngine::Loop() {
         is >> std::skipws >> token;
 
         if (token == "uci") {
-            std::cout << "id name Zugzwang 1.0\nid author Paul\n";
+            std::cout << "id name Zugzwang 1.0\nid author nixuh3\n";
             std::cout << "uciok\n";
         } else if (token == "isready") {
             std::cout << "readyok\n";
         } else if (token == "position") {
             position(is);
-            // board.Print();
+            m_Board.Print();
+            std::cout << "Eval: " << Evaluation::Evaluate(m_Board) << "\n";
         } else if (token == "go") {
             go(is);
         } else if (token == "quit") {
@@ -140,4 +142,4 @@ Move UCIEngine::parseMove(std::string_view str) const {
     return Move::None();
 }
 
-} // namespace Zugzwang
+}

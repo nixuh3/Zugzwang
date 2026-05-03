@@ -19,4 +19,4 @@ class UCIEngine {
     Position m_Board;
 };
 
-} // namespace Zugzwang
+}

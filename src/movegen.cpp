@@ -163,5 +163,5 @@ void GeneratePseudo(const Position& pos, MoveList& list) {
                               : GeneratePseudoMoves<BLACK>(pos, list);
 }
 
-} // namespace MoveGen
-} // namespace Zugzwang
+}
+}
