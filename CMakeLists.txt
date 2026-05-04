@@ -11,6 +11,7 @@ set(SOURCES
     src/position.cpp
     src/uci.cpp
     src/evaluation.cpp
+    src/search.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})

@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "movegen.h"
 #include "uci.h"
-#include "evaluation.h"
+#include "search.h"
 
 namespace Zugzwang {
 
@@ -32,9 +32,9 @@ bool isMoveStr(std::string_view str) {
 
 } // namespace
 
-UCIEngine::UCIEngine(int argc, char** argv) : m_Board() {
+UCIEngine::UCIEngine(int argc, char** argv) : m_board() {
     Bitboards::Init();
-    m_Board.ParseFen(StartFEN);
+    m_board.ParseFen(StartFEN);
 }
 
 void UCIEngine::Loop() {
@@ -57,8 +57,6 @@ void UCIEngine::Loop() {
             std::cout << "readyok\n";
         } else if (token == "position") {
             position(is);
-            m_Board.Print();
-            std::cout << "Eval: " << Evaluation::Evaluate(m_Board) << "\n";
         } else if (token == "go") {
             go(is);
         } else if (token == "quit") {
@@ -71,15 +69,20 @@ void UCIEngine::Loop() {
 
 void UCIEngine::go(std::istringstream& is) {
     std::string token;
-    is >> token;
-    if (token != "perft") {
-        return;
+    Search::Info info;
+
+    while (is >> token) {
+        if (token == "perft") {
+            is >> info.perft;
+        } else if (token == "depth") {
+            is >> info.depth;
+        }
     }
 
-    int depth;
-    is >> depth;
-    if (depth >= 1) {
-        m_Board.PerftTest(depth);
+    if (info.perft) {
+        m_board.PerftTest(info.perft);
+    } else {
+        Search::Search(m_board, info);
     }
 }
 
@@ -104,7 +107,7 @@ void UCIEngine::position(std::istringstream& is) {
         moves.push_back(token);
     }
 
-    m_Board.ParseFen(fen);
+    m_board.ParseFen(fen);
     for (const auto& move : moves) {
         if (!isMoveStr(move)) {
             break;
@@ -115,7 +118,7 @@ void UCIEngine::position(std::istringstream& is) {
             break;
         }
 
-        m_Board.MakeMove(mv);
+        m_board.MakeMove(mv);
     }
 }
 
@@ -124,7 +127,7 @@ Move UCIEngine::parseMove(std::string_view str) const {
     Square to = MakeSquare(File(str[2] - 'a'), Rank(str[3] - '1'));
 
     MoveList list;
-    MoveGen::GeneratePseudo(m_Board, list);
+    MoveGen::GeneratePseudo(m_board, list);
 
     for (const auto move : list) {
         if (move.FromSq() == from && move.ToSq() == to) {

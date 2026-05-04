@@ -16,7 +16,7 @@ class UCIEngine {
     void position(std::istringstream& is);
     Move parseMove(std::string_view str) const;
 
-    Position m_Board;
+    Position m_board;
 };
 
 }

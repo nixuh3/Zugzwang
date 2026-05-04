@@ -8,9 +8,10 @@ namespace Zugzwang {
 // chess engine
 using Bitboard = uint64_t;
 using Key = uint64_t;
+using Depth = uint16_t;
 
 constexpr int MAX_MOVES = 256;
-constexpr int MAX_PLIES = 2048;
+constexpr int MAX_PLIES = 1024;
 
 enum Color { WHITE, BLACK, COLOR_NB = 2 };
 
@@ -150,14 +151,13 @@ enum MoveType { NORMAL, PROMOTION = 1 << 14, EN_PASSANT = 2 << 14, CASTLING = 3 
 // bit 12-13: promotion piece type - 2 (from KNIGHT-2 to QUEEN-2)
 // bit 14-15: special move flag: promotion (1), en passant (2), castling (3)
 class Move {
-    uint16_t data;
 
   public:
     Move() = default;
 
-    constexpr explicit Move(uint16_t d) : data(d) {}
+    constexpr explicit Move(uint16_t d) : m_data(d) {}
 
-    constexpr Move(Square from, Square to) : data((from << 6) + to) {}
+    constexpr Move(Square from, Square to) : m_data((from << 6) + to) {}
 
     template <MoveType T>
     static constexpr Move Make(Square from, Square to, PieceType pt = KNIGHT) {
@@ -166,53 +166,71 @@ class Move {
 
     constexpr Square FromSq() const {
         assert(IsOk());
-        return Square((data >> 6) & 0x3F);
+        return Square((m_data >> 6) & 0x3F);
     }
 
     constexpr Square ToSq() const {
         assert(IsOk());
-        return Square(data & 0x3F);
+        return Square(m_data & 0x3F);
     }
 
-    constexpr MoveType TypeOf() const { return MoveType(data & (3 << 14)); }
+    constexpr MoveType TypeOf() const { return MoveType(m_data & (3 << 14)); }
 
-    constexpr PieceType PromotionType() const { return PieceType(((data >> 12) & 3) + KNIGHT); }
+    constexpr PieceType PromotionType() const { return PieceType(((m_data >> 12) & 3) + KNIGHT); }
 
-    constexpr bool IsOk() const { return None().data != data; }
+    constexpr bool IsOk() const { return None().m_data != m_data; }
 
     static constexpr Move None() { return Move(0); }
 
-    constexpr bool operator==(const Move& m) const { return data == m.data; }
-    constexpr bool operator!=(const Move& m) const { return data != m.data; }
+    constexpr bool operator==(const Move& m) const { return m_data == m.m_data; }
+    constexpr bool operator!=(const Move& m) const { return m_data != m.m_data; }
 
-    constexpr explicit operator bool() const { return data != 0; }
+    constexpr explicit operator bool() const { return m_data != 0; }
+
+  private:
+    uint16_t m_data;
 };
 
 class MoveList {
   public:
-    MoveList() : m_Count(0) {}
+    MoveList() : m_size(0) {}
 
     void Insert(Move move) {
-        assert(m_Count < MAX_MOVES);
-        m_Moves[m_Count++] = move;
+        assert(m_size < MAX_MOVES);
+        m_moves[m_size++] = move;
     }
 
-    Move& operator[](int i) {
-        assert(i >= 0 && i < m_Count);
-        return m_Moves[i];
+    void Remove(Move move) {
+        for (int i = 0; i < m_size; ++i) {
+            if (m_moves[i] == move) {
+                int num_to_move = m_size - i - 1;
+                if (num_to_move > 0) {
+                    std::memmove(&m_moves[i], &m_moves[i + 1], num_to_move * sizeof(Move));
+                }
+                --m_size;
+                return;
+            }
+        }
+    }
+
+    int GetSize() const { return m_size; }
+
+    Move operator[](int i) {
+        assert(i >= 0 && i < m_size);
+        return m_moves[i];
     }
 
     // For non-const range-based for loops
-    Move* begin() { return m_Moves; }
-    Move* end() { return m_Moves + m_Count; }
+    Move* begin() { return m_moves; }
+    Move* end() { return m_moves + m_size; }
 
     // For const range-based for loops
-    const Move* begin() const { return m_Moves; }
-    const Move* end() const { return m_Moves + m_Count; }
+    const Move* begin() const { return m_moves; }
+    const Move* end() const { return m_moves + m_size; }
 
   private:
-    Move m_Moves[MAX_MOVES];
-    int m_Count;
+    Move m_moves[MAX_MOVES];
+    int m_size;
 };
 
 }

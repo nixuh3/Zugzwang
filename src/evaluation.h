@@ -7,12 +7,10 @@ namespace Zugzwang {
 
 class Position;
 
-class Evaluation {
-  public:
-    static Value Evaluate(const Position& pos);
+namespace Evaluation {
 
-  private:
-    Evaluation();
+Value Evaluate(const Position& pos);
+
 };
 
 }

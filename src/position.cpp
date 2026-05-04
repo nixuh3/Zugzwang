@@ -21,135 +21,138 @@ constexpr int CastlePerm[SQUARE_NB] = {
 };
 // clang-format on
 
-uint64_t seed = 0x123456789ABCDEFULL;
+uint64_t Seed = 0x123456789ABCDEFULL;
 
-uint64_t splitmix64() {
-    uint64_t z = (seed += 0x9e3779b97f4a7c15ULL);
+uint64_t Splitmix64() {
+    uint64_t z = (Seed += 0x9e3779b97f4a7c15ULL);
     z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
     z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
     return z ^ (z >> 31);
 }
 
-Key psq[PIECE_NB][SQUARE_NB];
-Key castling[CASTLING_RIGHT_NB];
-Key enPassant[FILE_NB];
-Key side;
+Key Psq[PIECE_NB][SQUARE_NB];
+Key Castling[CASTLING_RIGHT_NB];
+Key EnPassant[FILE_NB];
+Key Side;
 
 } // namespace
 
 Position::Position() {
     for (int i = 0; i < PIECE_NB; ++i) {
         for (Square j = SQ_A1; j < SQUARE_NB; ++j) {
-            psq[i][j] = splitmix64();
+            Psq[i][j] = Splitmix64();
         }
     }
 
     for (File f = FILE_A; f < FILE_NB; ++f) {
-        enPassant[f] = splitmix64();
+        EnPassant[f] = Splitmix64();
     }
 
-    side = splitmix64();
+    Side = Splitmix64();
 
     for (int i = 0; i < CASTLING_RIGHT_NB; ++i) {
-        castling[i] = splitmix64();
+        Castling[i] = Splitmix64();
     }
 }
 
 void Position::putPiece(Piece piece, Square sq) {
     assert(piece != NO_PIECE);
 
-    m_Board[sq] = piece;
-    m_PosKey ^= psq[piece][sq];
-    m_PieceNb[piece]++;
-    m_Material[ColorOf(piece)] += PieceValue[piece];
+    m_board[sq] = piece;
+    m_posKey ^= Psq[piece][sq];
+    m_pieceNb[piece]++;
+    m_material[ColorOf(piece)] += PieceValue[piece];
 
-    m_ByColorBB[ColorOf(piece)] |= sq;
-    m_ByTypeBB[ALL_PIECES] |= m_ByTypeBB[TypeOf(piece)] |= sq;
+    m_byColorBB[ColorOf(piece)] |= sq;
+    m_byTypeBB[ALL_PIECES] |= m_byTypeBB[TypeOf(piece)] |= sq;
 }
 
 void Position::removePiece(Square sq) {
-    Piece piece = m_Board[sq];
+    Piece piece = m_board[sq];
     assert(piece != NO_PIECE);
 
-    m_PosKey ^= psq[piece][sq];
-    m_Board[sq] = NO_PIECE;
-    m_Material[ColorOf(piece)] -= PieceValue[piece];
+    m_posKey ^= Psq[piece][sq];
+    m_board[sq] = NO_PIECE;
+    m_material[ColorOf(piece)] -= PieceValue[piece];
 
-    m_ByTypeBB[ALL_PIECES] ^= sq;
-    m_ByTypeBB[TypeOf(piece)] ^= sq;
-    m_ByColorBB[ColorOf(piece)] ^= sq;
+    m_byTypeBB[ALL_PIECES] ^= sq;
+    m_byTypeBB[TypeOf(piece)] ^= sq;
+    m_byColorBB[ColorOf(piece)] ^= sq;
 
-    m_PieceNb[piece]--;
+    m_pieceNb[piece]--;
 }
 
 void Position::movePiece(Square from, Square to) {
-    Piece piece = m_Board[from];
+    Piece piece = m_board[from];
+
+    if (piece == NO_PIECE) {
+        assert(false);
+    }
     assert(piece != NO_PIECE);
 
     Bitboard fromTo = from | to;
 
-    m_PosKey ^= psq[piece][from];
-    m_PosKey ^= psq[piece][to];
-    m_Board[from] = NO_PIECE;
-    m_Board[to] = piece;
+    m_posKey ^= Psq[piece][from];
+    m_posKey ^= Psq[piece][to];
+    m_board[from] = NO_PIECE;
+    m_board[to] = piece;
 
-    m_ByTypeBB[ALL_PIECES] ^= fromTo;
-    m_ByTypeBB[TypeOf(piece)] ^= fromTo;
-    m_ByColorBB[ColorOf(piece)] ^= fromTo;
+    m_byTypeBB[ALL_PIECES] ^= fromTo;
+    m_byTypeBB[TypeOf(piece)] ^= fromTo;
+    m_byColorBB[ColorOf(piece)] ^= fromTo;
 }
 
 void Position::generatePosKey() {
-    for (Square i = SQ_A1; i < SQUARE_NB; ++i) {
-        Piece piece = m_Board[i];
-        if (piece != NO_PIECE) {
-            m_PosKey ^= psq[piece][i];
-        }
+    Bitboard pieces = Pieces();
+    while (pieces) {
+        Square sq = PopLsb(pieces);
+        m_posKey ^= Psq[m_board[sq]][sq];
     }
 
-    if (m_SideToMove == WHITE) {
-        m_PosKey ^= side;
+    if (m_sideToMove == WHITE) {
+        m_posKey ^= Side;
     }
 
-    if (m_EpSquare != SQ_NONE) {
-        m_PosKey ^= enPassant[FileOf(m_EpSquare)];
+    if (m_epSquare != SQ_NONE) {
+        m_posKey ^= EnPassant[FileOf(m_epSquare)];
     }
 
-    m_PosKey ^= castling[m_CastlingRights];
+    m_posKey ^= Castling[m_castlingRights];
 }
 
 void Position::reset() {
     for (Square i = SQ_A1; i < SQUARE_NB; ++i) {
-        m_Board[i] = NO_PIECE;
+        m_board[i] = NO_PIECE;
     }
 
     for (int i = 0; i < PIECE_NB; ++i) {
-        m_PieceNb[i] = 0;
+        m_pieceNb[i] = 0;
     }
 
     for (int i = 0; i < PIECE_TYPE_NB; ++i) {
-        m_ByTypeBB[i] = 0ULL;
+        m_byTypeBB[i] = 0ULL;
     }
 
-    m_ByColorBB[WHITE] = m_ByColorBB[BLACK] = 0ULL;
-    m_Material[WHITE] = m_Material[BLACK] = VALUE_ZERO;
-    m_SideToMove = WHITE;
-    m_EpSquare = SQ_NONE;
-    m_Rule50 = 0;
-    m_GamePly = 0;
-    m_CastlingRights = NO_CASTLING;
-    m_PosKey = 0ULL;
+    m_byColorBB[WHITE] = m_byColorBB[BLACK] = 0ULL;
+    m_material[WHITE] = m_material[BLACK] = VALUE_ZERO;
+    m_sideToMove = WHITE;
+    m_epSquare = SQ_NONE;
+    m_rule50 = 0;
+    m_gamePly = 0;
+    m_castlingRights = NO_CASTLING;
+    m_posKey = 0ULL;
 }
 
 void Position::updateListsBitboards() {
     for (Square sq = SQ_A1; sq < SQUARE_NB; ++sq) {
-        const Piece piece = m_Board[sq];
+        const Piece piece = m_board[sq];
 
         if (piece != NO_PIECE) {
-            m_ByColorBB[ColorOf(piece)] |= sq;
-            m_ByTypeBB[ALL_PIECES] |= m_ByTypeBB[TypeOf(piece)] |= sq;
+            m_byColorBB[ColorOf(piece)] |= sq;
+            m_byTypeBB[ALL_PIECES] |= m_byTypeBB[TypeOf(piece)] |= sq;
 
-            m_PieceNb[piece]++;
-            m_Material[ColorOf(piece)] += PieceValue[piece];
+            m_pieceNb[piece]++;
+            m_material[ColorOf(piece)] += PieceValue[piece];
         }
     }
 }
@@ -174,7 +177,7 @@ void Position::ParseFen(const std::string& fen) {
             const char* p = std::strchr(PieceToChar, token);
             if (p) {
                 idx = p - PieceToChar;
-                m_Board[sq] = Piece(idx);
+                m_board[sq] = Piece(idx);
                 ++sq;
             }
         }
@@ -182,58 +185,58 @@ void Position::ParseFen(const std::string& fen) {
 
     // 2. Active color
     ss >> token;
-    m_SideToMove = (token == 'w' ? WHITE : BLACK);
+    m_sideToMove = (token == 'w' ? WHITE : BLACK);
     ss >> token;
 
     // 3. Castling availability
     while ((ss >> token) && !isspace(token)) {
         switch (token) {
-            case 'K': m_CastlingRights |= WHITE_OO; break;
-            case 'k': m_CastlingRights |= BLACK_OO; break;
-            case 'Q': m_CastlingRights |= WHITE_OOO; break;
-            case 'q': m_CastlingRights |= BLACK_OOO; break;
+            case 'K': m_castlingRights |= WHITE_OO; break;
+            case 'k': m_castlingRights |= BLACK_OO; break;
+            case 'Q': m_castlingRights |= WHITE_OOO; break;
+            case 'q': m_castlingRights |= BLACK_OOO; break;
         }
     }
 
     // 4. En passant square
     if (((ss >> col) && (col >= 'a' && col <= 'h')) &&
-        ((ss >> row) && (row == (m_SideToMove == WHITE ? '6' : '3')))) {
-        m_EpSquare = MakeSquare(File(col - 'a'), Rank(row - '1'));
+        ((ss >> row) && (row == (m_sideToMove == WHITE ? '6' : '3')))) {
+        m_epSquare = MakeSquare(File(col - 'a'), Rank(row - '1'));
     }
 
     // 5. Halfmove clock (rule50)
-    ss >> std::skipws >> m_Rule50 >> m_GamePly;
+    ss >> std::skipws >> m_rule50 >> m_gamePly;
 
     // Convert from fullmove starting from 1 to internal ply count
-    m_GamePly = std::max(2 * (m_GamePly - 1), 0) + (m_SideToMove == BLACK);
+    m_gamePly = std::max(2 * (m_gamePly - 1), 0) + (m_sideToMove == BLACK);
 
     generatePosKey();
     updateListsBitboards();
 }
 
-bool Position::MakeMove(const Move& move) {
+bool Position::MakeMove(Move move) {
     const Square from = move.FromSq();
     const Square to = move.ToSq();
 
     // save state
-    m_History[m_GamePly].PosKey = m_PosKey;
-    m_History[m_GamePly].Rule50 = m_Rule50;
-    m_History[m_GamePly].EpSquare = m_EpSquare;
-    m_History[m_GamePly].CastlingRights = m_CastlingRights;
-    m_History[m_GamePly].Captured =
-        m_Board[to]; // normal captures only; en-passant handled separately
+    m_history[m_gamePly].posKey = m_posKey;
+    m_history[m_gamePly].rule50 = m_rule50;
+    m_history[m_gamePly].epSquare = m_epSquare;
+    m_history[m_gamePly].castlingRights = m_castlingRights;
+    m_history[m_gamePly].captured =
+        m_board[to]; // normal captures only; en-passant handled separately
 
     // remove old EP & castling from hash
-    if (m_EpSquare != SQ_NONE) {
-        m_PosKey ^= enPassant[FileOf(m_EpSquare)];
+    if (m_epSquare != SQ_NONE) {
+        m_posKey ^= EnPassant[FileOf(m_epSquare)];
     }
-    m_PosKey ^= castling[m_CastlingRights];
+    m_posKey ^= Castling[m_castlingRights];
 
     // special move handling
     if (move.TypeOf() == EN_PASSANT) {
         // remove the captured pawn (behind 'to')
-        removePiece(to + (m_SideToMove == WHITE ? SOUTH : NORTH));
-        m_Rule50 = 0; // reset 50-move on capture
+        removePiece(to + (m_sideToMove == WHITE ? SOUTH : NORTH));
+        m_rule50 = 0; // reset 50-move on capture
     } else if (move.TypeOf() == CASTLING) {
         switch (to) {
             case SQ_C1: movePiece(SQ_A1, SQ_D1); break;
@@ -245,12 +248,12 @@ bool Position::MakeMove(const Move& move) {
     }
 
     // normal capture handling (if a piece sits on 'to')
-    if (m_Board[to] != NO_PIECE) {
+    if (m_board[to] != NO_PIECE) {
         removePiece(to);
-        m_Rule50 = 0;
+        m_rule50 = 0;
     } else if (move.TypeOf() != EN_PASSANT) {
         // only increment rule50 if it wasn't a capture (en-passant already set to 0)
-        m_Rule50++;
+        m_rule50++;
     }
 
     // move the piece
@@ -259,44 +262,44 @@ bool Position::MakeMove(const Move& move) {
     // promotion handling
     if (move.TypeOf() == PROMOTION) {
         removePiece(to);
-        putPiece(MakePiece(m_SideToMove, move.PromotionType()), to);
+        putPiece(MakePiece(m_sideToMove, move.PromotionType()), to);
     }
 
     // new en-passant target (from a double pawn push)
-    m_EpSquare = SQ_NONE;
-    if (TypeOf(m_Board[to]) == PAWN && std::abs(RankOf(from) - RankOf(to)) == 2) {
-        m_EpSquare = from + (m_SideToMove == WHITE ? NORTH : SOUTH);
+    m_epSquare = SQ_NONE;
+    if (TypeOf(m_board[to]) == PAWN && std::abs(RankOf(from) - RankOf(to)) == 2) {
+        m_epSquare = from + (m_sideToMove == WHITE ? NORTH : SOUTH);
     }
-    if (m_EpSquare != SQ_NONE) {
-        m_PosKey ^= enPassant[FileOf(m_EpSquare)]; // add new EP key
+    if (m_epSquare != SQ_NONE) {
+        m_posKey ^= EnPassant[FileOf(m_epSquare)]; // add new EP key
     }
 
     // update castling rights and re-add castling key
-    m_CastlingRights &= CastlePerm[from];
-    m_CastlingRights &= CastlePerm[to];
-    m_PosKey ^= castling[m_CastlingRights];
+    m_castlingRights &= CastlePerm[from];
+    m_castlingRights &= CastlePerm[to];
+    m_posKey ^= Castling[m_castlingRights];
 
     // flip side
-    m_SideToMove = ~m_SideToMove;
-    m_PosKey ^= side;
+    m_sideToMove = ~m_sideToMove;
+    m_posKey ^= Side;
 
-    m_GamePly++;
+    m_gamePly++;
 
-    if (MoveGen::IsSquareAttacked(*this, SquareOf<KING>(~m_SideToMove), m_SideToMove)) {
+    if (MoveGen::IsSquareAttacked(*this, SquareOf<KING>(~m_sideToMove), m_sideToMove)) {
         UnmakeMove(move);
         return false;
     }
     return true;
 }
 
-void Position::UnmakeMove(const Move& move) {
-    m_GamePly--;
+void Position::UnmakeMove(Move move) {
+    m_gamePly--;
 
     const Square from = move.FromSq();
     const Square to = move.ToSq();
 
     if (move.TypeOf() == EN_PASSANT) {
-        putPiece(MakePiece(m_SideToMove, PAWN), to + PawnPush(m_SideToMove));
+        putPiece(MakePiece(m_sideToMove, PAWN), to + PawnPush(m_sideToMove));
     } else if (move.TypeOf() == CASTLING) {
         switch (to) {
             case SQ_C1: movePiece(SQ_D1, SQ_A1); break;
@@ -307,23 +310,23 @@ void Position::UnmakeMove(const Move& move) {
         }
     }
 
-    m_SideToMove = ~m_SideToMove;
+    m_sideToMove = ~m_sideToMove;
 
     movePiece(to, from);
 
     if (move.TypeOf() == PROMOTION) {
         removePiece(from);
-        putPiece(MakePiece(m_SideToMove, PAWN), from);
+        putPiece(MakePiece(m_sideToMove, PAWN), from);
     }
 
-    if (m_History[m_GamePly].Captured != NO_PIECE) {
-        putPiece(m_History[m_GamePly].Captured, to);
+    if (m_history[m_gamePly].captured != NO_PIECE) {
+        putPiece(m_history[m_gamePly].captured, to);
     }
 
-    m_EpSquare = m_History[m_GamePly].EpSquare;
-    m_Rule50 = m_History[m_GamePly].Rule50;
-    m_CastlingRights = m_History[m_GamePly].CastlingRights;
-    m_PosKey = m_History[m_GamePly].PosKey;
+    m_epSquare = m_history[m_gamePly].epSquare;
+    m_rule50 = m_history[m_gamePly].rule50;
+    m_castlingRights = m_history[m_gamePly].castlingRights;
+    m_posKey = m_history[m_gamePly].posKey;
 }
 
 void Position::Print() const {
@@ -333,7 +336,7 @@ void Position::Print() const {
     for (Rank rank = RANK_8; rank >= RANK_1; --rank) {
         for (File file = FILE_A; file <= FILE_H; ++file) { // <= not <
             Square sq = MakeSquare(file, rank);
-            Piece p = m_Board[sq];
+            Piece p = m_board[sq];
             char c = (p != NO_PIECE ? PieceToChar[p] : ' ');
             cout << "| " << c << " ";
         }
@@ -342,55 +345,57 @@ void Position::Print() const {
     }
 
     cout << "  a   b   c   d   e   f   g   h\n";
-    cout << "Side to move: " << (m_SideToMove == WHITE ? "w" : "b") << "\n";
+    cout << "Side to move: " << (m_sideToMove == WHITE ? "w" : "b") << "\n";
     cout << "En passant square: ";
-    if (IsOk(m_EpSquare)) {
-        cout << m_EpSquare;
+    if (IsOk(m_epSquare)) {
+        cout << m_epSquare;
     } else {
         cout << "none";
     }
     cout << "\n";
-    cout << "Castle permissions: " << (m_CastlingRights & WHITE_OO ? "K" : "-")
-         << (m_CastlingRights & WHITE_OOO ? "Q" : "-") << (m_CastlingRights & BLACK_OO ? "k" : "-")
-         << (m_CastlingRights & BLACK_OOO ? "q" : "-") << "\n";
-    cout << "Position key: " << std::hex << m_PosKey << std::dec << "\n";
-    cout << m_Material[WHITE] << ", " << m_Material[BLACK] << "\n";
+    cout << "Castle permissions: " << (m_castlingRights & WHITE_OO ? "K" : "-")
+         << (m_castlingRights & WHITE_OOO ? "Q" : "-") << (m_castlingRights & BLACK_OO ? "k" : "-")
+         << (m_castlingRights & BLACK_OOO ? "q" : "-") << "\n";
+    cout << "Position key: " << std::hex << m_posKey << std::dec << "\n";
+    cout << m_material[WHITE] << ", " << m_material[BLACK] << "\n";
 }
 
 void Position::perft(int depth) {
     if (depth == 0) {
-        m_PerftLealNodes++;
+        m_perftLealNodes++;
         return;
     }
     MoveList list;
-    MoveGen::GeneratePseudo(*this, list);
+    MoveGen::GenerateLegalMoves(*this, list);
 
     for (const auto& move : list) {
-        if (!MakeMove(move)) {
-            continue;
-        }
+        MakeMove(move);
+        // if (!MakeMove(move)) {
+        //     continue;
+        // }
         perft(depth - 1);
         UnmakeMove(move);
     }
 }
 
-uint64_t Position::PerftTest(int depth) {
+void Position::PerftTest(int depth) {
     using namespace std::chrono;
 
     std::cout << "Starting perft test to depth " << depth << "\n";
 
-    m_PerftLealNodes = 0;
+    m_perftLealNodes = 0;
     MoveList list;
 
     const auto start = high_resolution_clock::now();
 
-    MoveGen::GeneratePseudo(*this, list);
+    MoveGen::GenerateLegalMoves(*this, list);
     for (const auto& move : list) {
-        if (!MakeMove(move)) {
-            continue;
-        }
+        MakeMove(move);
+        // if (!MakeMove(move)) {
+        //     continue;
+        // }
 
-        uint64_t before = m_PerftLealNodes;
+        uint64_t before = m_perftLealNodes;
 
         perft(depth - 1);
         UnmakeMove(move);
@@ -412,15 +417,13 @@ uint64_t Position::PerftTest(int depth) {
             std::cout << promoCh;
         }
 
-        std::cout << ": " << m_PerftLealNodes - before << "\n";
+        std::cout << ": " << m_perftLealNodes - before << "\n";
     }
 
     const auto stop = high_resolution_clock::now();
     const auto duration = duration_cast<milliseconds>(stop - start).count();
 
-    std::cout << "Total: " << m_PerftLealNodes << " nodes in " << duration << " ms\n\n";
-
-    return duration;
+    std::cout << "Total: " << m_perftLealNodes << " nodes in " << duration << " ms\n\n";
 }
 
 }

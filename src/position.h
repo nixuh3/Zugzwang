@@ -6,11 +6,11 @@
 namespace Zugzwang {
 
 struct StateInfo {
-    Square EpSquare;
-    int Rule50;
-    int CastlingRights;
-    Piece Captured;
-    Key PosKey;
+    Square epSquare;
+    int rule50;
+    int castlingRights;
+    Piece captured;
+    Key posKey;
 };
 
 class Position {
@@ -19,19 +19,19 @@ class Position {
 
     void ParseFen(const std::string& fen);
 
-    bool MakeMove(const Move& move);
-    void UnmakeMove(const Move& move);
+    bool MakeMove(Move move);
+    void UnmakeMove(Move move);
 
     void Print() const;
 
-    uint64_t PerftTest(int depth);
+    void PerftTest(int depth);
 
-    Bitboard Pieces() const { return m_ByTypeBB[ALL_PIECES]; }
-    Bitboard Pieces(Color c) const { return m_ByColorBB[c]; }
+    Bitboard Pieces() const { return m_byTypeBB[ALL_PIECES]; }
+    Bitboard Pieces(Color c) const { return m_byColorBB[c]; }
 
     template <typename... PieceTypes>
     Bitboard Pieces(PieceTypes... pts) const {
-        return (m_ByTypeBB[pts] | ...);
+        return (m_byTypeBB[pts] | ...);
     }
 
     template <typename... PieceTypes>
@@ -41,7 +41,7 @@ class Position {
 
     template <PieceType Pt>
     int Count(Color c) const {
-        return m_PieceNb[MakePiece(c, Pt)];
+        return m_pieceNb[MakePiece(c, Pt)];
     }
 
     template <PieceType Pt>
@@ -57,14 +57,14 @@ class Position {
 
     Piece PieceOn(Square sq) const {
         assert(IsOk(sq));
-        return m_Board[sq];
+        return m_board[sq];
     }
 
-    Value GetMaterial(Color c) const { return m_Material[c]; }
+    Value GetMaterial(Color c) const { return m_material[c]; }
 
-    Color SideToMove() const { return m_SideToMove; }
-    Square EpSuare() const { return m_EpSquare; }
-    bool CanCastle(CastlingRights cr) const { return m_CastlingRights & cr; }
+    Color SideToMove() const { return m_sideToMove; }
+    Square EpSuare() const { return m_epSquare; }
+    bool CanCastle(CastlingRights cr) const { return m_castlingRights & cr; }
 
   private:
     void putPiece(Piece piece, Square sq);
@@ -76,22 +76,22 @@ class Position {
     void updateListsBitboards();
     void perft(int depth);
 
-    Piece m_Board[SQUARE_NB];
-    int m_PieceNb[PIECE_NB];
-    Color m_SideToMove;
-    Bitboard m_ByColorBB[COLOR_NB];
-    Bitboard m_ByTypeBB[PIECE_TYPE_NB];
-    Value m_Material[COLOR_NB];
+    Piece m_board[SQUARE_NB];
+    int m_pieceNb[PIECE_NB];
+    Color m_sideToMove;
+    Bitboard m_byColorBB[COLOR_NB];
+    Bitboard m_byTypeBB[PIECE_TYPE_NB];
+    Value m_material[COLOR_NB];
 
-    Square m_EpSquare;
-    int m_Rule50;
-    int m_GamePly;
-    int m_CastlingRights;
-    Key m_PosKey;
+    Square m_epSquare;
+    int m_rule50;
+    int m_gamePly;
+    int m_castlingRights;
+    Key m_posKey;
 
-    uint64_t m_PerftLealNodes;
+    uint64_t m_perftLealNodes;
 
-    StateInfo m_History[MAX_PLIES];
+    StateInfo m_history[MAX_PLIES];
 };
 
 }

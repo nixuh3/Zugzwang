@@ -163,5 +163,20 @@ void GeneratePseudo(const Position& pos, MoveList& list) {
                               : GeneratePseudoMoves<BLACK>(pos, list);
 }
 
+void GenerateLegalMoves(Position& pos, MoveList& list) {
+    pos.SideToMove() == WHITE ? GeneratePseudoMoves<WHITE>(pos, list)
+                              : GeneratePseudoMoves<BLACK>(pos, list);
+
+    for (int i = 0; i < list.GetSize();) {
+        Move move = list[i];
+        if (!pos.MakeMove(move)) {
+            list.Remove(move);
+        } else {
+            pos.UnmakeMove(move);
+            ++i;
+        }
+    }
+}
+
 }
 }

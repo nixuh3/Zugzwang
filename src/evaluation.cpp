@@ -105,7 +105,7 @@ Value Evaluation::Evaluate(const Position& pos) {
         }
     }
 
-    return value;
+    return (pos.SideToMove() == WHITE) ? value : -value;
 }
 
 }
