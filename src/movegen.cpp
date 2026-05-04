@@ -144,6 +144,30 @@ void GeneratePseudo(const Position& pos, MoveList& list) {
     GenerateKingMoves<Us>(pos, list);
 }
 
+template <PieceType Pt>
+inline void AccumulateAttacks(const Position& pos, Color opp, Bitboard occ, Bitboard& attacked) {
+    Bitboard pieces = pos.Pieces(opp, Pt);
+    while (pieces) {
+        Square from = PopLsb(pieces);
+        attacked |= Bitboards::GetAttacks<Pt>(from, occ, opp);
+    }
+}
+
+Bitboard GetAttacks(const Position& pos) {
+    Bitboard occ = pos.Pieces();
+    Color opponent = ~pos.SideToMove();
+    Bitboard attacked = 0ULL;
+
+    AccumulateAttacks<PAWN>(pos, opponent, occ, attacked);
+    AccumulateAttacks<KNIGHT>(pos, opponent, occ, attacked);
+    AccumulateAttacks<BISHOP>(pos, opponent, occ, attacked);
+    AccumulateAttacks<ROOK>(pos, opponent, occ, attacked);
+    AccumulateAttacks<QUEEN>(pos, opponent, occ, attacked);
+    AccumulateAttacks<KING>(pos, opponent, occ, attacked);
+
+    return attacked;
+}
+
 } // namespace
 
 namespace MoveGen {
