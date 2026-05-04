@@ -127,7 +127,7 @@ Move UCIEngine::parseMove(std::string_view str) const {
     Square to = MakeSquare(File(str[2] - 'a'), Rank(str[3] - '1'));
 
     MoveList list;
-    MoveGen::GeneratePseudo(m_board, list);
+    MoveGen::GeneratePseudoMoves(m_board, list);
 
     for (const auto move : list) {
         if (move.FromSq() == from && move.ToSq() == to) {

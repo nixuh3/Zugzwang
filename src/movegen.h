@@ -9,8 +9,8 @@ class Position;
 namespace MoveGen {
 
 bool IsSquareAttacked(const Position& pos, Square sq, Color attacker);
-void GeneratePseudo(const Position& pos, MoveList& list);
-void GenerateLegalMoves(Position& pos, MoveList& list);
+void GeneratePseudoMoves(const Position& pos, MoveList& list);
+void GenerateLegalMoves(const Position& pos, MoveList& list);
 
 }
 

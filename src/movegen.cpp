@@ -43,8 +43,8 @@ void GeneratePawnMoves(const Position& pos, MoveList& list) {
 
     while (bb) {
         Square from = PopLsb(bb);
-        const Rank rank = RankOf(from);
-        const Square oneForward = from + PawnPush(Us);
+        Rank rank = RankOf(from);
+        Square oneForward = from + PawnPush(Us);
 
         assert(IsOk(oneForward));
 
@@ -53,7 +53,7 @@ void GeneratePawnMoves(const Position& pos, MoveList& list) {
             if (rank == promoRank) {
                 addPromotions(from, oneForward);
             } else {
-                const Square twoForward = from + 2 * PawnPush(Us);
+                Square twoForward = from + 2 * PawnPush(Us);
                 assert(IsOk(twoForward));
 
                 list.Insert(Move(from, oneForward));
@@ -64,7 +64,7 @@ void GeneratePawnMoves(const Position& pos, MoveList& list) {
         }
 
         // captures
-        const Bitboard pawnAtt = Bitboards::GetAttacks<PAWN>(from, 0, Us);
+        Bitboard pawnAtt = Bitboards::GetAttacks<PAWN>(from, 0, Us);
         Bitboard captures = pawnAtt & pos.Pieces(~Us);
 
         while (captures) {
@@ -133,8 +133,8 @@ void GenerateKingMoves(const Position& pos, MoveList& list) {
 }
 
 template <Color Us>
-void GeneratePseudoMoves(const Position& pos, MoveList& list) {
-    const Bitboard target = ~pos.Pieces(Us);
+void GeneratePseudo(const Position& pos, MoveList& list) {
+    Bitboard target = ~pos.Pieces(Us);
 
     GeneratePawnMoves<Us>(pos, list);
     GenerateMoves<Us, KNIGHT>(pos, list, target);
@@ -149,7 +149,7 @@ void GeneratePseudoMoves(const Position& pos, MoveList& list) {
 namespace MoveGen {
 
 bool IsSquareAttacked(const Position& pos, Square sq, Color attacker) {
-    const Bitboard occ = pos.Pieces();
+    Bitboard occ = pos.Pieces();
 
     return (Bitboards::GetAttacks<BISHOP>(sq, occ) & pos.Pieces(attacker, BISHOP, QUEEN)) ||
         (Bitboards::GetAttacks<ROOK>(sq, occ) & pos.Pieces(attacker, ROOK, QUEEN)) ||
@@ -158,24 +158,18 @@ bool IsSquareAttacked(const Position& pos, Square sq, Color attacker) {
         (Bitboards::GetAttacks<KING>(sq) & pos.Pieces(attacker, KING));
 }
 
-void GeneratePseudo(const Position& pos, MoveList& list) {
-    pos.SideToMove() == WHITE ? GeneratePseudoMoves<WHITE>(pos, list)
-                              : GeneratePseudoMoves<BLACK>(pos, list);
+void GeneratePseudoMoves(const Position& pos, MoveList& list) {
+    pos.SideToMove() == WHITE ? GeneratePseudo<WHITE>(pos, list) : GeneratePseudo<BLACK>(pos, list);
 }
 
-void GenerateLegalMoves(Position& pos, MoveList& list) {
-    pos.SideToMove() == WHITE ? GeneratePseudoMoves<WHITE>(pos, list)
-                              : GeneratePseudoMoves<BLACK>(pos, list);
+void GenerateLegalMoves(const Position& pos, MoveList& list) {
+    // calculate opponent attacks once
+    Bitboard oppAttacks = GetAttacks(pos);
 
-    for (int i = 0; i < list.GetSize();) {
-        Move move = list[i];
-        if (!pos.MakeMove(move)) {
-            list.Remove(move);
-        } else {
-            pos.UnmakeMove(move);
-            ++i;
-        }
-    }
+    // generate moves
+    // generate king moves
+    Color opponent = ~pos.SideToMove();
+    // todo
 }
 
 }

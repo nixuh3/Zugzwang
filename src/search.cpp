@@ -16,7 +16,7 @@ Value Negamax(Position& pos, Depth depth) {
     Value max = -VALUE_INFINITE;
 
     MoveList list;
-    MoveGen::GeneratePseudo(pos, list);
+    MoveGen::GeneratePseudoMoves(pos, list);
 
     for (Move move : list) {
         if (!pos.MakeMove(move)) {
