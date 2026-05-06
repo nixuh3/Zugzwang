@@ -55,6 +55,19 @@ Position::Position() {
     }
 }
 
+bool Position::IsInCheck() const {
+    return MoveGen::IsSquareAttacked(*this, SquareOf<KING>(m_sideToMove), ~m_sideToMove);
+}
+
+bool Position::IsRepetition() const {
+    for (int i = m_gamePly - m_rule50; i < m_gamePly - 1; ++i) {
+        if (m_posKey == m_history[i].posKey) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void Position::putPiece(Piece piece, Square sq) {
     assert(piece != NO_PIECE);
 
@@ -285,10 +298,12 @@ bool Position::MakeMove(Move move) {
 
     m_gamePly++;
 
+    // if the we (opponent for current side) are in check, the move was illegal
     if (MoveGen::IsSquareAttacked(*this, SquareOf<KING>(~m_sideToMove), m_sideToMove)) {
         UnmakeMove(move);
         return false;
     }
+
     return true;
 }
 
@@ -357,7 +372,6 @@ void Position::Print() const {
          << (m_castlingRights & WHITE_OOO ? "Q" : "-") << (m_castlingRights & BLACK_OO ? "k" : "-")
          << (m_castlingRights & BLACK_OOO ? "q" : "-") << "\n";
     cout << "Position key: " << std::hex << m_posKey << std::dec << "\n";
-    cout << m_material[WHITE] << ", " << m_material[BLACK] << "\n";
 }
 
 void Position::perft(int depth) {
@@ -366,13 +380,12 @@ void Position::perft(int depth) {
         return;
     }
     MoveList list;
-    MoveGen::GenerateLegalMoves(*this, list);
+    MoveGen::GeneratePseudoMoves(*this, list);
 
     for (const auto& move : list) {
-        MakeMove(move);
-        // if (!MakeMove(move)) {
-        //     continue;
-        // }
+        if (!MakeMove(move)) {
+            continue;
+        }
         perft(depth - 1);
         UnmakeMove(move);
     }
@@ -388,12 +401,11 @@ void Position::PerftTest(int depth) {
 
     const auto start = high_resolution_clock::now();
 
-    MoveGen::GenerateLegalMoves(*this, list);
+    MoveGen::GeneratePseudoMoves(*this, list);
     for (const auto& move : list) {
-        MakeMove(move);
-        // if (!MakeMove(move)) {
-        //     continue;
-        // }
+        if (!MakeMove(move)) {
+            continue;
+        }
 
         uint64_t before = m_perftLealNodes;
 

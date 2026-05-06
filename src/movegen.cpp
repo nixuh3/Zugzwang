@@ -8,7 +8,7 @@ namespace {
 
 inline void SplatMoves(MoveList& list, Square from, Bitboard toBb) {
     while (toBb) {
-        list.Insert(Move(from, PopLsb(toBb)));
+        list.PushBack(Move(from, PopLsb(toBb)));
     }
 }
 
@@ -33,10 +33,10 @@ void GeneratePawnMoves(const Position& pos, MoveList& list) {
     constexpr Rank promoRank = RelativeRank(Us, RANK_7);
 
     auto addPromotions = [&](Square startSq, Square toSq) {
-        list.Insert(Move::Make<PROMOTION>(startSq, toSq, QUEEN));
-        list.Insert(Move::Make<PROMOTION>(startSq, toSq, ROOK));
-        list.Insert(Move::Make<PROMOTION>(startSq, toSq, BISHOP));
-        list.Insert(Move::Make<PROMOTION>(startSq, toSq, KNIGHT));
+        list.PushBack(Move::Make<PROMOTION>(startSq, toSq, QUEEN));
+        list.PushBack(Move::Make<PROMOTION>(startSq, toSq, ROOK));
+        list.PushBack(Move::Make<PROMOTION>(startSq, toSq, BISHOP));
+        list.PushBack(Move::Make<PROMOTION>(startSq, toSq, KNIGHT));
     };
 
     Bitboard bb = pos.Pieces(Us, PAWN);
@@ -56,9 +56,9 @@ void GeneratePawnMoves(const Position& pos, MoveList& list) {
                 Square twoForward = from + 2 * PawnPush(Us);
                 assert(IsOk(twoForward));
 
-                list.Insert(Move(from, oneForward));
+                list.PushBack(Move(from, oneForward));
                 if (rank == startRank && pos.PieceOn(twoForward) == NO_PIECE) {
-                    list.Insert(Move(from, twoForward));
+                    list.PushBack(Move(from, twoForward));
                 }
             }
         }
@@ -72,13 +72,13 @@ void GeneratePawnMoves(const Position& pos, MoveList& list) {
             if (rank == promoRank) {
                 addPromotions(from, to);
             } else {
-                list.Insert(Move(from, to));
+                list.PushBack(Move(from, to));
             }
         }
 
         // en passant
         if (pos.EpSuare() != SQ_NONE && (pawnAtt & (1ULL << pos.EpSuare()))) {
-            list.Insert(Move::Make<EN_PASSANT>(from, pos.EpSuare()));
+            list.PushBack(Move::Make<EN_PASSANT>(from, pos.EpSuare()));
         }
     }
 }
@@ -96,7 +96,7 @@ void GenerateKingMoves(const Position& pos, MoveList& list) {
             if (pos.PieceOn(SQ_F1) == NO_PIECE && pos.PieceOn(SQ_G1) == NO_PIECE) {
                 if (!MoveGen::IsSquareAttacked(pos, SQ_E1, BLACK) &&
                     !MoveGen::IsSquareAttacked(pos, SQ_F1, BLACK)) {
-                    list.Insert(Move::Make<CASTLING>(SQ_E1, SQ_G1));
+                    list.PushBack(Move::Make<CASTLING>(SQ_E1, SQ_G1));
                 }
             }
         }
@@ -106,7 +106,7 @@ void GenerateKingMoves(const Position& pos, MoveList& list) {
                 pos.PieceOn(SQ_B1) == NO_PIECE) {
                 if (!MoveGen::IsSquareAttacked(pos, SQ_E1, BLACK) &&
                     !MoveGen::IsSquareAttacked(pos, SQ_D1, BLACK)) {
-                    list.Insert(Move::Make<CASTLING>(SQ_E1, SQ_C1));
+                    list.PushBack(Move::Make<CASTLING>(SQ_E1, SQ_C1));
                 }
             }
         }
@@ -115,7 +115,7 @@ void GenerateKingMoves(const Position& pos, MoveList& list) {
             if (pos.PieceOn(SQ_F8) == NO_PIECE && pos.PieceOn(SQ_G8) == NO_PIECE) {
                 if (!MoveGen::IsSquareAttacked(pos, SQ_E8, WHITE) &&
                     !MoveGen::IsSquareAttacked(pos, SQ_F8, WHITE)) {
-                    list.Insert(Move::Make<CASTLING>(SQ_E8, SQ_G8));
+                    list.PushBack(Move::Make<CASTLING>(SQ_E8, SQ_G8));
                 }
             }
         }
@@ -125,7 +125,7 @@ void GenerateKingMoves(const Position& pos, MoveList& list) {
                 pos.PieceOn(SQ_B8) == NO_PIECE) {
                 if (!MoveGen::IsSquareAttacked(pos, SQ_E8, WHITE) &&
                     !MoveGen::IsSquareAttacked(pos, SQ_D8, WHITE)) {
-                    list.Insert(Move::Make<CASTLING>(SQ_E8, SQ_C8));
+                    list.PushBack(Move::Make<CASTLING>(SQ_E8, SQ_C8));
                 }
             }
         }

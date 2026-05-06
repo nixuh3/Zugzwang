@@ -11,7 +11,9 @@ using Key = uint64_t;
 using Depth = uint16_t;
 
 constexpr int MAX_MOVES = 256;
-constexpr int MAX_PLIES = 1024;
+constexpr int MAX_HISTORY_PLIES = 1024;
+constexpr int MAX_DEPTH = 64;
+constexpr int MAX_PLY = 128;
 
 enum Color { WHITE, BLACK, COLOR_NB = 2 };
 
@@ -151,7 +153,6 @@ enum MoveType { NORMAL, PROMOTION = 1 << 14, EN_PASSANT = 2 << 14, CASTLING = 3 
 // bit 12-13: promotion piece type - 2 (from KNIGHT-2 to QUEEN-2)
 // bit 14-15: special move flag: promotion (1), en passant (2), castling (3)
 class Move {
-
   public:
     Move() = default;
 
@@ -195,42 +196,21 @@ class MoveList {
   public:
     MoveList() : m_size(0) {}
 
-    void Insert(Move move) {
+    void PushBack(Move move) {
         assert(m_size < MAX_MOVES);
         m_moves[m_size++] = move;
     }
 
-    void Remove(Move move) {
-        for (int i = 0; i < m_size; ++i) {
-            if (m_moves[i] == move) {
-                int num_to_move = m_size - i - 1;
-                if (num_to_move > 0) {
-                    std::memmove(&m_moves[i], &m_moves[i + 1], num_to_move * sizeof(Move));
-                }
-                --m_size;
-                return;
-            }
-        }
-    }
+    size_t Size() const noexcept { return m_size; }
 
-    int GetSize() const { return m_size; }
-
-    Move operator[](int i) {
-        assert(i >= 0 && i < m_size);
-        return m_moves[i];
-    }
-
-    // For non-const range-based for loops
     Move* begin() { return m_moves; }
     Move* end() { return m_moves + m_size; }
-
-    // For const range-based for loops
     const Move* begin() const { return m_moves; }
     const Move* end() const { return m_moves + m_size; }
 
   private:
     Move m_moves[MAX_MOVES];
-    int m_size;
+    size_t m_size;
 };
 
 }

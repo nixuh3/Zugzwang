@@ -1,6 +1,7 @@
 #pragma once
 
 #include "position.h"
+#include "search.h"
 #include <iosfwd>
 #include <string_view>
 
@@ -17,6 +18,7 @@ class UCIEngine {
     Move parseMove(std::string_view str) const;
 
     Position m_board;
+    Searcher m_searcher;
 };
 
 }

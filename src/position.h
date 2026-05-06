@@ -60,11 +60,15 @@ class Position {
         return m_board[sq];
     }
 
-    Value GetMaterial(Color c) const { return m_material[c]; }
+    bool IsInCheck() const;
 
+    Value Material(Color c) const { return m_material[c]; }
     Color SideToMove() const { return m_sideToMove; }
     Square EpSuare() const { return m_epSquare; }
     bool CanCastle(CastlingRights cr) const { return m_castlingRights & cr; }
+    Key PosKey() const { return m_posKey; }
+
+    bool IsRepetition() const;
 
   private:
     void putPiece(Piece piece, Square sq);
@@ -91,7 +95,7 @@ class Position {
 
     uint64_t m_perftLealNodes;
 
-    StateInfo m_history[MAX_PLIES];
+    StateInfo m_history[MAX_HISTORY_PLIES];
 };
 
 }

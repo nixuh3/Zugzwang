@@ -2,6 +2,7 @@
 #include "movegen.h"
 #include "uci.h"
 #include "search.h"
+#include "evaluation.h"
 
 namespace Zugzwang {
 
@@ -57,6 +58,8 @@ void UCIEngine::Loop() {
             std::cout << "readyok\n";
         } else if (token == "position") {
             position(is);
+            m_board.Print();
+            std::cout << Evaluation::Evaluate(m_board) << "\n";
         } else if (token == "go") {
             go(is);
         } else if (token == "quit") {
@@ -69,7 +72,7 @@ void UCIEngine::Loop() {
 
 void UCIEngine::go(std::istringstream& is) {
     std::string token;
-    Search::Info info;
+    Searcher::Info info;
 
     while (is >> token) {
         if (token == "perft") {
@@ -82,7 +85,7 @@ void UCIEngine::go(std::istringstream& is) {
     if (info.perft) {
         m_board.PerftTest(info.perft);
     } else {
-        Search::Search(m_board, info);
+        m_searcher.Search(m_board, info);
     }
 }
 

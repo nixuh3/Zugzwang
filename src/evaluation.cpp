@@ -92,9 +92,9 @@ constexpr const Value* PieceSquareTables[] = {
 }
 
 Value Evaluation::Evaluate(const Position& pos) {
-    Value value = pos.GetMaterial(WHITE) - pos.GetMaterial(BLACK);
+    Value value = pos.Material(WHITE) - pos.Material(BLACK);
 
-    for (PieceType pt = PAWN; pt <= QUEEN; ++pt) {
+    for (PieceType pt = PAWN; pt <= KING; ++pt) {
         Bitboard bb = pos.Pieces(WHITE, pt);
         while (bb) {
             value += PieceSquareTables[pt][PopLsb(bb)];
